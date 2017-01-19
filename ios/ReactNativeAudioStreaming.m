@@ -47,11 +47,11 @@ RCT_EXPORT_MODULE()
       NSString *url = [NSString stringWithString:self.audioPlayer.currentlyPlayingQueueItemId];
       
       [self.bridge.eventDispatcher sendDeviceEventWithName:@"AudioBridgeEvent" body:@{
-                                                                                 @"status": @"STREAMING",
-                                                                                 @"progress": progress,
-                                                                                 @"duration": duration,
-                                                                                 @"url": url,
-                                                                                 }];
+                                                                                      @"status": @"STREAMING",
+                                                                                      @"progress": progress,
+                                                                                      @"duration": duration,
+                                                                                      @"url": url,
+                                                                                      }];
    }
 }
 
@@ -71,7 +71,7 @@ RCT_EXPORT_METHOD(play:(NSString *) streamUrl options:(NSDictionary *)options)
    if (!self.audioPlayer) {
       return;
    }
-
+   
    [self activate];
    
    if (self.audioPlayer.state == STKAudioPlayerStatePaused && [self.lastUrlString isEqualToString:streamUrl]) {
@@ -79,7 +79,7 @@ RCT_EXPORT_METHOD(play:(NSString *) streamUrl options:(NSDictionary *)options)
    } else {
       [self.audioPlayer play:streamUrl];
    }
-
+   
    self.lastUrlString = streamUrl;
    self.showNowPlayingInfo = false;
    
@@ -104,7 +104,7 @@ RCT_EXPORT_METHOD(seekToTime:(double) seconds)
    if (!self.audioPlayer) {
       return;
    }
-
+   
    [self.audioPlayer seekToTime:seconds];
 }
 
@@ -146,7 +146,7 @@ RCT_EXPORT_METHOD(pause)
    } else {
       [self.audioPlayer pause];
       [self setNowPlayingInfo:false];
-      [self deactivate];
+//      [self deactivate];
    }
 }
 
@@ -168,7 +168,7 @@ RCT_EXPORT_METHOD(stop)
    } else {
       [self.audioPlayer stop];
       [self setNowPlayingInfo:false];
-      [self deactivate];
+//      [self deactivate];
    }
 }
 
@@ -177,7 +177,7 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
    NSString *status = @"STOPPED";
    NSNumber *duration = [NSNumber numberWithFloat:self.audioPlayer.duration];
    NSNumber *progress = [NSNumber numberWithFloat:self.audioPlayer.progress];
-
+   
    if (!self.audioPlayer) {
       status = @"ERROR";
    } else if ([self.audioPlayer state] == STKAudioPlayerStatePlaying) {
@@ -269,7 +269,7 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
    NSError *categoryError = nil;
    
    [[AVAudioSession sharedInstance] setActive:YES error:&categoryError];
-   [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&categoryError];
+//   [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&categoryError];
    
    if (categoryError) {
       NSLog(@"Error setting category! %@", [categoryError description]);
@@ -287,17 +287,41 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
    }
 }
 
+RCT_EXPORT_METHOD(setCategory:(nonnull NSNumber*)key withValue:(NSString*)categoryName) {
+   AVAudioSession *session = [AVAudioSession sharedInstance];
+   if ([categoryName isEqual: @"Ambient"]) {
+      [session setCategory: AVAudioSessionCategoryAmbient error: nil];
+   } else if ([categoryName isEqual: @"SoloAmbient"]) {
+      [session setCategory: AVAudioSessionCategorySoloAmbient error: nil];
+   } else if ([categoryName isEqual: @"Playback"]) {
+      [session setCategory: AVAudioSessionCategoryPlayback error: nil];
+   } else if ([categoryName isEqual: @"Record"]) {
+      [session setCategory: AVAudioSessionCategoryRecord error: nil];
+   } else if ([categoryName isEqual: @"PlayAndRecord"]) {
+      [session setCategory: AVAudioSessionCategoryPlayAndRecord error: nil];
+   } else if ([categoryName isEqual: @"AudioProcessing"]) {
+      [session setCategory: AVAudioSessionCategoryAudioProcessing error: nil];
+   } else if ([categoryName isEqual: @"MultiRoute"]) {
+      [session setCategory: AVAudioSessionCategoryMultiRoute error: nil];
+   }
+}
+
+RCT_EXPORT_METHOD(enable:(BOOL)enabled) {
+   AVAudioSession *session = [AVAudioSession sharedInstance];
+   [session setActive:enabled error:nil];
+}
+
 - (void)setSharedAudioSessionCategory
 {
-   NSError *categoryError = nil;
    self.isPlayingWithOthers = [[AVAudioSession sharedInstance] isOtherAudioPlaying];
-
-   [[AVAudioSession sharedInstance] setActive:NO error:&categoryError];
-   [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:&categoryError];
    
-   if (categoryError) {
-      NSLog(@"Error setting category! %@", [categoryError description]);
-   }
+//   NSError *categoryError = nil;
+//   [[AVAudioSession sharedInstance] setActive:NO error:&categoryError];
+//   [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:&categoryError];
+   
+//   if (categoryError) {
+//      NSLog(@"Error setting category! %@", [categoryError description]);
+//   }
 }
 
 - (void)registerAudioInterruptionNotifications
@@ -436,7 +460,7 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
    if (self.showNowPlayingInfo) {
       // TODO Get artwork from stream
       // MPMediaItemArtwork *artwork = [[MPMediaItemArtwork alloc]initWithImage:[UIImage imageNamed:@"webradio1"]];
-   
+      
       NSString* appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
       NSDictionary *nowPlayingInfo = [NSDictionary dictionaryWithObjectsAndKeys:
                                       self.currentSong ? self.currentSong : @"", MPMediaItemPropertyAlbumTitle,
